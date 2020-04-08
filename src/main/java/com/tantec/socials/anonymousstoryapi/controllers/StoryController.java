@@ -41,21 +41,26 @@ public class StoryController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StoryController.class);
 
+    // Story Service Obj
     @Autowired StoryService storyService;
 
+    // User Service Obj
     @Autowired UserServiceImpl userService;
 
+    // Get story with ID
     @GetMapping(path = "{storyId}", produces = "application/json")
     public ResponseEntity<Story> getStory(@PathVariable(name = "storyId") BigInteger storyId) {
 
         LOGGER.info("Start of get story");
         Story result = storyService.getStoryById(storyId);
         if (result != null)
+            // If result from service is not null
             return new ResponseEntity<Story>(result, HttpStatus.OK);
         else
             return new ResponseEntity<Story>(result, HttpStatus.NOT_FOUND);
     }
 
+    // Search stories with filters
     @PostMapping(path = "search", produces = "application/json")
     public ResponseEntity<List<Story>> searchStory(@RequestBody SearchQueryRequest requestBody) {
         LOGGER.info("Start of search by user name");
@@ -65,8 +70,10 @@ public class StoryController {
         // return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         Map<String, String> conditions = requestBody.getFilter().get().getConditions();
         if (conditions.containsKey("authorUserId"))
+            // If condition is author
             result = storyService.searchByUserId(conditions.get("authorUserId"));
         else if (conditions.containsKey("categoryId"))
+            // If condition is story category
             result = storyService.searchByCategoryId(conditions.get("categoryId"));
 
         return new ResponseEntity<List<Story>>(
@@ -74,6 +81,7 @@ public class StoryController {
             HttpStatus.OK);
     }
 
+    // Add/Create Story 
     @PostMapping
     public ResponseEntity<StoryCreateResponse> addStory(
             @RequestHeader(required = true, name = "ACTIVE-USER-ID") String userId,
@@ -86,12 +94,14 @@ public class StoryController {
         // return new ResponseEntity<Map<String, Object>>(HttpStatus.BAD_REQUEST);
         // }
         if (!(requestBody.validateCreateRequest())) {
+            // If requestBody is not valid
             return new ResponseEntity<StoryCreateResponse>(HttpStatus.BAD_REQUEST);
         }
         Story story = new Story();
 
         Date currentTime = new Date();
         
+        // Set story object data members
         story.setAuthorUserId(userId);
         story.setTitle(requestBody.getTitle());
         story.setCategoryId(requestBody.getCategoryId());
@@ -100,8 +110,10 @@ public class StoryController {
         story.setCreatedTimestamp(currentTime);
         story.setLastUpdatedTimestamp(currentTime);
 
+        
         Story dbResponse = storyService.addStory(story);
         if (dbResponse != null) {
+            // After creation success, return CREATED Http Status
             return new ResponseEntity<StoryCreateResponse>(
                     new StoryCreateResponse(dbResponse.getId(), CommonConstants.STATUS_CREATED), HttpStatus.CREATED);
         } else {
@@ -109,17 +121,20 @@ public class StoryController {
         }
     }
 
+    // Update Story with ID
     @PutMapping(path = "{id}", produces = "application/json")
     public ResponseEntity<Map<String, Object>> updateStory(@PathVariable(name = "id") BigInteger id,
             @RequestHeader(required = true, name = "ACTIVE-USER-ID") String userId,
             @RequestBody StoryUpdateRequest requestBody) {
         if (requestBody.validateUpdateRequest()) {
+            // If request is valid
             storyService.updateStory(id, requestBody.getContent());
             return new ResponseEntity<Map<String, Object>>(HttpStatus.NO_CONTENT);
         } else
             return new ResponseEntity<Map<String, Object>>(HttpStatus.BAD_REQUEST);
     }
 
+    // Delete story from DB with ID (Set isActive to false)
     @DeleteMapping(path = "{id}", produces = "application/json")
     public ResponseEntity<Map<String, Object>> deleteStory(@PathVariable(name = "id") BigInteger id,
             @RequestHeader(required = true, name = "ACTIVE-USER-ID") String userId) {
